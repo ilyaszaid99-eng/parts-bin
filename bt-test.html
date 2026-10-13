@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bluetooth test</title>
+<style>
+body{font:17px/1.4 -apple-system,system-ui,sans-serif;margin:0;padding:16px;background:#f4f5f7;color:#14181d}
+button{display:block;width:100%;font:inherit;font-weight:600;padding:16px;margin:10px 0;border-radius:12px;border:1px solid #bbb;background:#fff}
+pre{white-space:pre-wrap;word-break:break-word;background:#fff;border:1px solid #ccc;border-radius:12px;padding:12px;font-size:14px}
+</style></head><body>
+<h2>Bluetooth test</h2>
+<p>Tap A first. If a device list pops up, pick your printer. Then tell me what the box below says.</p>
+<button id="a">A: simplest request</button>
+<button id="b">B: with printer channel names</button>
+<button id="c">C: by name starting M, T or P</button>
+<pre id="out">Ready.</pre>
+<script>
+var out=document.getElementById('out');
+function say(s){out.textContent+='\n'+s;}
+function desc(e){try{return 'type='+typeof e+' name='+(e&&e.name)+' message='+(e&&e.message)+' code='+(e&&e.code)+' str='+String(e);}catch(x){return 'unreadable';}}
+out.textContent='Page: '+location.href+'\nnavigator.bluetooth: '+(navigator.bluetooth?'yes':'NO')+'\nSecure page: '+window.isSecureContext;
+function go(label,opts){
+  /* called straight from the tap, nothing awaited before it */
+  say('\n'+label+': asking…');
+  navigator.bluetooth.requestDevice(opts).then(function(d){
+    say(label+': PICKED '+(d.name||'(no name)')+' id='+d.id);
+    return d.gatt.connect().then(function(s){
+      say(label+': connected');
+      return s.getPrimaryServices();
+    }).then(function(list){
+      say(label+': services: '+(list.length?list.map(function(s){return s.uuid.slice(4,8);}).join(', '):'none visible'));
+    });
+  }).catch(function(e){say(label+': FAILED '+desc(e));});
+}
+document.getElementById('a').onclick=function(){go('A',{acceptAllDevices:true});};
+document.getElementById('b').onclick=function(){go('B',{acceptAllDevices:true,optionalServices:['0000ff00-0000-1000-8000-00805f9b34fb','0000ffe0-0000-1000-8000-00805f9b34fb','0000fee7-0000-1000-8000-00805f9b34fb']});};
+document.getElementById('c').onclick=function(){go('C',{filters:[{namePrefix:'M'},{namePrefix:'T'},{namePrefix:'P'}]});};
+</script></body></html>
